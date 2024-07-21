@@ -4,6 +4,7 @@ script para apagar el wifi en un dispositivo.
 # Instalación 
 ```
 git clone https://github.com/elchaka0/apagar-wifi
+cd apagar-wifi
 chmod +x apagar-wifi.sh
 ```
 
