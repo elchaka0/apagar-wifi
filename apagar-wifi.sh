@@ -43,7 +43,7 @@ function escanear_red_especifica {
         echo "Ejecutando comando: sudo airodump-ng --band a -c $canal --bssid $bssid $interfaz_wifi"
         sudo airodump-ng --band a -c "$canal" --bssid "$bssid" "$interfaz_wifi"
 
-        read -p "¿Apagar wifi? (s/n): " apagar_wifi
+        read -p "¿Apagar wifi en un dispositivo? (s/n): " apagar_wifi
         if [[ "$apagar_wifi" == "s" ]]; then
             trap 'echo "Interrupción detectada. Volviendo al escaneo de la red específica..."; continue' SIGINT
             desautenticacion
