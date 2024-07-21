@@ -23,7 +23,6 @@ function restore_network {
     echo "Reiniciando wpa_supplicant..."
     sudo systemctl start wpa_supplicant
     echo "Configuración restaurada."
-    echo "puto el que lo lea"
 }
 
 # Función para manejar la desautenticación
