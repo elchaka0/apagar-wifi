@@ -1,14 +1,52 @@
 #!/bin/bash
+#al precionar Ctrl + c le va a salir la opcion de poner "s" o "n", al poner "s" el script avanza, al poner "n" o cualquier otra letra el script retrocede.
+
 echo """
    ██╗       ██╗██╗███████╗██╗       █████╗ ███████╗███████╗
    ██║  ██╗  ██║██║██╔════╝██║      ██╔══██╗██╔════╝██╔════╝
    ╚██╗████╗██╔╝██║█████╗  ██║█████╗██║  ██║█████╗  █████╗
     ████╔═████║ ██║██╔══╝  ██║╚════╝██║  ██║██╔══╝  ██╔══╝
     ╚██╔╝ ╚██╔╝ ██║██║     ██║      ╚█████╔╝██║     ██║
-     ╚═╝   ╚═╝  ╚═╝╚═╝     ╚═╝       ╚════╝ ╚═╝     ╚═╝     Autor: elchaka0
+     ╚═╝   ╚═╝  ╚═╝╚═╝     ╚═╝       ╚════╝ ╚═╝     ╚═╝     Autor::elchaka0
+   ::v1.3::Pentesting_Tool::2024::Attack_DoS::Linux
+   ╔══════════════════════════════════════════════════════════════════════╗
+   ║         SCRIPT DE ESCANEO Y DESAUTENTICACIÓN DE REDES WI-FI          ║
+   ╠══════════════════════════════════════════════════════════════════════╣
+   ║    Esta herramienta escanea redes Wi-Fi del entorno utilizando la    ║
+   ║ herramienta airodump-ng. Permite seleccionar una red especifica para ║
+   ║     realizar un escaneo mas detallado y desauntenticar cualquier     ║
+   ║                        dispositivo de la red                         ║
+   ╚══════════════════════════════════════════════════════════════════════╝
 """
-# Solicitar al usuario el nombre de la interfaz de red Wi-Fi
-read -p "Ingrese el nombre de su interfaz de red Wi-Fi (por ejemplo, wlo1): " interfaz_wifi
+
+# Variables globales
+interfaz_wifi=""
+canal=""
+bssid=""
+
+# Función para mostrar la ayuda
+function mostrar_ayuda {
+    echo """
+   ╔════════════════╦════════════════════════════════════════════════════════════════════════╗
+   ║    COMANDOS    ║                              DESCRIPCION                               ║
+   ╠════════════════╩════════════════════════════════════════════════════════════════════════╣
+   ║ run            : Ejecuta el escaneo de redes Wi-Fi.                                     ║
+   ║ --help         : Muestra esta pantalla de ayuda.                                        ║
+   ║ Ctrl + c       : Para el script y da la opcion de regresar o seguir a la siguiente etapa║
+   ╚═════════════════════════════════════════════════════════════════════════════════════════╝
+    """
+}
+
+# Función para detectar la interfaz de red Wi-Fi
+function detectar_interfaz_wifi() {
+    interfaz_wifi=$(iw dev | awk '$1=="Interface"{print $2}' | head -n 1)
+    if [ -z "$interfaz_wifi" ]; then
+        echo "No se pudo detectar ninguna interfaz Wi-Fi. Asegúrate de tener una interfaz Wi-Fi activa."
+        exit 1
+    else
+        echo "Interfaz Wi-Fi detectada: $interfaz_wifi"
+    fi
+}
 
 # Función para restaurar la configuración de red
 function restore_network {
@@ -53,43 +91,69 @@ function escanear_red_especifica {
 # Capturar la señal de interrupción (Ctrl+C)
 trap 'echo "Interrupción detectada. Restaurando configuración..."; restore_network; exit' SIGINT
 
-# Detener NetworkManager
-echo "Deteniendo NetworkManager..."
-sudo systemctl stop NetworkManager
+# Función principal
+function main() {
+    detectar_interfaz_wifi
 
-# Detener wpa_supplicant si está activo
-echo "Deteniendo wpa_supplicant..."
-sudo systemctl stop wpa_supplicant
+    # Detener NetworkManager
+    echo "Deteniendo NetworkManager..."
+    sudo systemctl stop NetworkManager
 
-# Asegúrate de que no haya procesos usando el adaptador
-echo "Verificando procesos usando el adaptador Wi-Fi..."
-while pgrep -x "airodump-ng" > /dev/null; do
-    echo "Esperando a que airodump-ng termine..."
-    sleep 5
-done
+    # Detener wpa_supplicant si está activo
+    echo "Deteniendo wpa_supplicant..."
+    sudo systemctl stop wpa_supplicant
 
-# Poner la interfaz Wi-Fi en modo monitor
-echo "Configurando la interfaz Wi-Fi en modo monitor, espere 10 segundos..."
-sudo ip link set "$interfaz_wifi" down
-sleep 10  # Esperar un momento más largo para asegurarse de que la interfaz esté completamente apagada
-sudo iw dev "$interfaz_wifi" set type monitor
-sudo ip link set "$interfaz_wifi" up
+    # Asegúrate de que no haya procesos usando el adaptador
+    echo "Verificando procesos usando el adaptador Wi-Fi..."
+    while pgrep -x "airodump-ng" > /dev/null; do
+        echo "Esperando a que airodump-ng termine..."
+        sleep 5
+    done
 
-while true; do
-    # Escanear redes Wi-Fi
-    echo "Escaneando redes Wi-Fi... (presiona Ctrl+C para detener)"
-    sudo airodump-ng "$interfaz_wifi"
+    # Poner la interfaz Wi-Fi en modo monitor
+    echo "Configurando la interfaz Wi-Fi en modo monitor, espere 10 segundos..."
+    sudo ip link set "$interfaz_wifi" down
+    sleep 10  # Esperar un momento más largo para asegurarse de que la interfaz esté completamente apagada
+    sudo iw dev "$interfaz_wifi" set type monitor
+    sudo ip link set "$interfaz_wifi" up
 
-    # Solicitar opción para ejecutar un comando adicional
-    read -p "¿Buscar una red wifi en especifico? (s/n): " ejecutar_comando
-    if [[ "$ejecutar_comando" == "s" ]]; then
-        trap 'echo "Interrupción detectada. Restaurando configuración..."; restore_network; exit' SIGINT
-        escanear_red_especifica
-    else
-        break
-    fi
-done
+    while true; do
+        # Escanear redes Wi-Fi
+        echo "Escaneando redes Wi-Fi... (presiona Ctrl+C para detener)"
+        sudo airodump-ng "$interfaz_wifi"
 
-# Restaurar la configuración de red (en caso de que el script termine normalmente)
-echo "Restaurando configuración al finalizar..."
-restore_network
+        # Solicitar opción para ejecutar un comando adicional
+        read -p "¿Buscar una red wifi en especifico? (s/n): " ejecutar_comando
+        if [[ "$ejecutar_comando" == "s" ]]; then
+            trap 'echo "Interrupción detectada. Restaurando configuración..."; restore_network; exit' SIGINT
+            escanear_red_especifica
+        else
+            break
+        fi
+    done
+
+    # Restaurar la configuración de red (en caso de que el script termine normalmente)
+    echo "Restaurando configuración al finalizar..."
+    restore_network
+}
+
+# Menú inicial
+function menu_inicial() {
+    while true; do
+        read -p "Ingrese un comando (run/--help): " comando
+        case $comando in
+            run)
+                main
+                ;;
+            --help)
+                mostrar_ayuda
+                ;;
+            *)
+                echo "Comando no reconocido. Usa 'run' para iniciar o '--help' para obtener ayuda."
+                ;;
+        esac
+    done
+}
+
+# Iniciar el menú inicial
+menu_inicial
